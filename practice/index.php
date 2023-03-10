@@ -1,10 +1,24 @@
 <?php
 require('config/config.php');
 require('config/db.php');
+// Check if filter has been applied
 
-$query = "SELECT * FROM tasks"; //slc all from task
-$result = mysqli_query($conn, $query); //connection, query
-$tasks = mysqli_fetch_all($result, MYSQLI_ASSOC); //fetch 
+$status = isset($_GET['status']) ? $_GET['status'] : 'all';
+
+if ($status === 'all') {
+    $query = "SELECT * FROM tasks"; //slc all from task
+
+
+} else {
+    $query = "SELECT * FROM tasks WHERE task_status = ?";
+}
+$stmt = mysqli_prepare($conn, $query);
+if ($status !== 'all') {
+    mysqli_stmt_bind_param($stmt, 's', $status);
+}
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt); //connection, query
+$tasks = mysqli_fetch_all($result, MYSQLI_ASSOC); //fetch
 
 ?>
 <!DOCTYPE html>
@@ -32,6 +46,19 @@ $tasks = mysqli_fetch_all($result, MYSQLI_ASSOC); //fetch
                             <a class="text-end" href="add.php">
                                 <button type="submit" class="btn btn-info btn-fill pull-right">Add New Task</button>
                             </a>
+                        </div>
+                    </div>
+                    <div class="row justify-content-between align-items-center mt-3">
+                        <div class="col-auto">
+                            <form>
+                                <label for="filter">Filter by status:</label>
+                                <select id="filter" name="status" onchange="this.form.submit()">
+                                    <option value="all" <?php if ($status === 'all') echo 'selected'; ?>>All</option>
+                                    <option value="complete" <?php if ($status === 'complete') echo 'selected'; ?>>Complete</option>
+                                    <option value="incomplete" <?php if ($status === 'incomplete') echo 'selected'; ?>>Incomplete</option>
+                                    <option value="in_progress" <?php if ($status === 'in_progress') echo 'selected'; ?>>In Progress</option>
+                                </select>
+                            </form>
                         </div>
                     </div>
 
@@ -75,6 +102,26 @@ $tasks = mysqli_fetch_all($result, MYSQLI_ASSOC); //fetch
     </main>
 
     <script src="../practice/assets/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript">
+        const tableRows = document.querySelectorAll('tbody tr');
+        const filterDropdown = document.querySelector('#filter');
+
+        // Add an event listener to the dropdown
+        filterDropdown.addEventListener('change', filterTable);
+
+        // Define the filter function
+        function filterTable() {
+            const selectedValue = filterDropdown.value;
+            tableRows.forEach(row => {
+                const status = row.querySelector('.status').textContent;
+                if (selectedValue === 'all' || selectedValue === status) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
 
 </html>
